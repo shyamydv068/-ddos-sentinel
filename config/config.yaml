@@ -1,0 +1,27 @@
+app:
+  name: ddos-sentinel
+  env: development
+  host: 0.0.0.0
+  port: 8000
+  debug: true
+  cors:
+    origins:
+      - http://localhost:5173
+      - http://frontend:5173
+
+database:
+  url: ${DATABASE_URL}
+  echo_sql: false
+  pool_size: 10
+  max_overflow: 20
+
+logging:
+  level: INFO
+  format: json
+  file_path: logs/application
+
+security:
+  rate_limit_enabled: true
+  dry_run: true
+  audit_log_enabled: true
+  blocklist_path: data/blocklist.json

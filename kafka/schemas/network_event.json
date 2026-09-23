@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NetworkEvent",
+  "type": "object",
+  "required": ["event_id", "timestamp", "source_ip", "destination_ip", "protocol", "packet_count", "byte_count"],
+  "properties": {
+    "event_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "source_ip": { "type": "string" },
+    "destination_ip": { "type": "string" },
+    "source_port": { "type": ["integer", "null"] },
+    "destination_port": { "type": ["integer", "null"] },
+    "protocol": { "type": "string" },
+    "packet_count": { "type": "integer" },
+    "byte_count": { "type": "integer" },
+    "flow_duration": { "type": ["number", "null"] }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,37 @@
+model:
+  name: RandomForestClassifier
+  version: v1.0
+  path: ml/models/ddos_model.pkl
+  scaler_path: ml/models/scaler.pkl
+  encoder_path: ml/models/encoder.pkl
+  metadata_path: ml/models/model_metadata.json
+
+training:
+  test_size: 0.2
+  validation_size: 0.2
+  random_state: 42
+  cv_folds: 5
+
+features:
+  selected_columns:
+    - packet_count
+    - byte_count
+    - flow_duration
+    - source_port
+    - destination_port
+    - protocol_code
+    - packet_rate
+    - byte_rate
+    - unique_src_ips
+    - connection_count
+
+thresholds:
+  detection_threshold: 0.75
+  risk_low: 30
+  risk_medium: 60
+  risk_high: 80
+  risk_critical: 100
+
+ml:
+  enabled: true
+  confidence_threshold: 0.7

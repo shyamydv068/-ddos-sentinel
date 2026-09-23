@@ -1,0 +1,16 @@
+spark:
+  master: local[*]
+  app_name: ddos-sentinel-stream
+  window_duration_minutes: 5
+  slide_duration_minutes: 1
+  checkpoint_dir: /tmp/ddos-sentinel-checkpoints
+
+streaming:
+  kafka_bootstrap_servers: kafka:9092
+  starting_offsets: earliest
+  max_offsets_per_trigger: 2000
+  trigger_time_seconds: 10
+
+monitoring:
+  metrics_enabled: true
+  log_level: WARN

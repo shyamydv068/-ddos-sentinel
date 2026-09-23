@@ -1,0 +1,23 @@
+bootstrap_servers:
+  - kafka:9092
+  - localhost:9092
+
+producer:
+  acks: all
+  retries: 5
+  linger_ms: 10
+  batch_size: 16384
+
+consumer:
+  group_id: ddos-sentinel-group
+  auto_offset_reset: earliest
+  enable_auto_commit: false
+
+topics:
+  network_traffic: network-traffic
+  ddos_detection: ddos-detection
+  security_alerts: security-alerts
+  mitigation_events: mitigation-events
+  system_events: system-events
+
+client_id: ddos-sentinel-kafka
