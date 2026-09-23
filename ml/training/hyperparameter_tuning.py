@@ -1,0 +1,120 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+
+from ml.preprocessing.preprocess import DatasetPreprocessor
+
+
+MODEL_TYPES = {
+    "random_forest": RandomForestClassifier,
+    "logistic_regression": LogisticRegression,
+}
+
+
+def train_model(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    model_name: str = "random_forest",
+    output_dir: str | Path = "ml/models",
+    model_version: str = "v1.0",
+) -> Any:
+    """Train a DDoS detection model and persist it to disk."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    model_class = MODEL_TYPES.get(model_name.lower(), RandomForestClassifier)
+    if model_name.lower() == "random_forest":
+        model = model_class(
+            n_estimators=200,
+            random_state=42,
+            class_weight="balanced",
+            n_jobs=-1,
+        )
+    elif model_name.lower() == "logistic_regression":
+        model = model_class(max_iter=1000, random_state=42)
+    else:
+        model = model_class(random_state=42)
+
+    model.fit(X_train, y_train)
+
+    model_path = output_dir / "ddos_model.pkl"
+    joblib.dump(model, model_path)
+
+    metric_payload = {
+        "model_name": model_name,
+        "model_version": model_version,
+        "trained_at": pd.Timestamp.utcnow().isoformat(),
+        "feature_count": int(X_train.shape[1]),
+        "status": "trained",
+    }
+
+    metadata_path = output_dir / "model_metadata.json"
+    with metadata_path.open("w", encoding="utf-8") as fh:
+        json.dump(metric_payload, fh, indent=2)
+
+    return model
+
+
+def train_pipeline(
+    dataset_path: str | Path,
+    output_dir: str | Path = "ml/models",
+    label_column: str = "label",
+    model_name: str = "random_forest",
+    selected_features: list[str] | None = None,
+) -> dict[str, Any]:
+    """Run full preprocessing + model training for a CSV dataset."""
+    preprocessor = DatasetPreprocessor(
+        dataset_path=dataset_path,
+        output_dir=output_dir,
+        label_column=label_column,
+        selected_features=selected_features,
+    )
+    X_train_scaled, X_val_scaled, X_test_scaled, y_train, y_val, y_test = preprocessor.fit_and_transform()
+
+    model = train_model(
+        X_train=X_train_scaled,
+        y_train=y_train,
+        model_name=model_name,
+        output_dir=output_dir,
+        model_version="v1.0",
+    )
+
+    return {
+        "train_samples": int(len(X_train_scaled)),
+        "validation_samples": int(len(X_val_scaled)),
+        "test_samples": int(len(X_test_scaled)),
+        "feature_count": int(X_train_scaled.shape[1]),
+        "model_path": str(Path(output_dir) / "ddos_model.pkl"),
+        "model_name": model_name,
+        "status": "trained",
+    }
+
+
+def custom_cross_validation(X: pd.DataFrame, y: pd.Series, model_name: str = "random_forest") -> dict[str, float]:
+    """Run simple cross-validation for classification robustness."""
+    model_class = MODEL_TYPES.get(model_name.lower(), RandomForestClassifier)
+    if model_name.lower() == "random_forest":
+        estimator = model_class(n_estimators=120, random_state=42, class_weight="balanced")
+    elif model_name.lower() == "logistic_regression":
+        estimator = model_class(max_iter=1000, random_state=42)
+    else:
+        estimator = model_class(random_state=42)
+
+    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    scores = cross_val_score(estimator, X, y, cv=cv, scoring="f1")
+
+    return {
+        "cv_f1_mean": float(scores.mean()),
+        "cv_f1_std": float(scores.std()),
+        "cv_folds": int(len(scores)),
+    }
